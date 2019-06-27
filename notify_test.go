@@ -45,8 +45,8 @@ func TestNotifieeMultipleConn(t *testing.T) {
 	}
 
 	tu.WaitFor(ctx, func() error {
-		if checkRoutingTable(d1, d2) {
-			return fmt.Errorf("should not have routes")
+		if !checkRoutingTable(d1, d2) {
+			return fmt.Errorf("should have routes")
 		}
 		return nil
 	})
@@ -66,8 +66,8 @@ func TestNotifieeFuzz(t *testing.T) {
 		}
 	}
 	tu.WaitFor(ctx, func() error {
-		if checkRoutingTable(d1, d2) {
-			return fmt.Errorf("should not have routes")
+		if !checkRoutingTable(d1, d2) {
+			return fmt.Errorf("should have routes")
 		}
 		return nil
 	})

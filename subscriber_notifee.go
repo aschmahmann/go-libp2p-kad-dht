@@ -47,40 +47,40 @@ func (nn *subscriberNotifee) subscribe(proc goprocess.Process) {
 }
 
 func (nn *subscriberNotifee) Disconnected(n network.Network, v network.Conn) {
-	dht := nn.DHT()
-	select {
-	case <-dht.Process().Closing():
-		return
-	default:
-	}
-
-	p := v.RemotePeer()
-
-	// Lock and check to see if we're still connected. We lock to make sure
-	// we don't concurrently process a connect event.
-	dht.plk.Lock()
-	defer dht.plk.Unlock()
-	if dht.host.Network().Connectedness(p) == network.Connected {
-		// We're still connected.
-		return
-	}
-
-	dht.routingTable.Remove(p)
-
-	dht.smlk.Lock()
-	defer dht.smlk.Unlock()
-	ms, ok := dht.strmap[p]
-	if !ok {
-		return
-	}
-	delete(dht.strmap, p)
-
-	// Do this asynchronously as ms.lk can block for a while.
-	go func() {
-		ms.lk.Lock()
-		defer ms.lk.Unlock()
-		ms.invalidate()
-	}()
+	//dht := nn.DHT()
+	//select {
+	//case <-dht.Process().Closing():
+	//	return
+	//default:
+	//}
+	//
+	//p := v.RemotePeer()
+	//
+	//// Lock and check to see if we're still connected. We lock to make sure
+	//// we don't concurrently process a connect event.
+	//dht.plk.Lock()
+	//defer dht.plk.Unlock()
+	//if dht.host.Network().Connectedness(p) == network.Connected {
+	//	// We're still connected.
+	//	return
+	//}
+	//
+	//dht.routingTable.Remove(p)
+	//
+	//dht.smlk.Lock()
+	//defer dht.smlk.Unlock()
+	//ms, ok := dht.strmap[p]
+	//if !ok {
+	//	return
+	//}
+	//delete(dht.strmap, p)
+	//
+	//// Do this asynchronously as ms.lk can block for a while.
+	//go func() {
+	//	ms.lk.Lock()
+	//	defer ms.lk.Unlock()
+	//	ms.invalidate()
+	//}()
 }
 
 func (nn *subscriberNotifee) Connected(n network.Network, v network.Conn)      {}
