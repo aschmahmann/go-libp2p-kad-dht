@@ -2,6 +2,7 @@ package dhtopts
 
 import (
 	"fmt"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
 
 	ds "github.com/ipfs/go-datastore"
@@ -27,6 +28,7 @@ type Options struct {
 	Protocols  []protocol.ID
 	BucketSize int
 	RoutingTable *kbucket.RoutingTable
+	Peerstore peerstore.Peerstore
 }
 
 // Apply applies the given options to this Option
@@ -125,6 +127,16 @@ func BucketSize(bucketSize int) Option {
 func UseRoutingTable(rt *kbucket.RoutingTable) Option {
 	return func(o *Options) error {
 		o.RoutingTable = rt
+		return nil
+	}
+}
+
+// Peerstore configures the DHT to use a particular peerstore
+//
+// Defaults to deriving one from the host
+func Peerstore(ps peerstore.Peerstore) Option {
+	return func(o *Options) error {
+		o.Peerstore = ps
 		return nil
 	}
 }

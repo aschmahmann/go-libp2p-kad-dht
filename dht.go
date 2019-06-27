@@ -106,7 +106,7 @@ func New(ctx context.Context, h host.Host, options ...opts.Option) (*IpfsDHT, er
 	if err := cfg.Apply(append([]opts.Option{opts.Defaults}, options...)...); err != nil {
 		return nil, err
 	}
-	dht := makeDHT(ctx, h, cfg.Datastore, cfg.Protocols, cfg.BucketSize, cfg.RoutingTable)
+	dht := makeDHT(ctx, h, cfg.Datastore, cfg.Protocols, cfg.BucketSize, cfg.Peerstore, cfg.RoutingTable)
 
 	subnot := (*subscriberNotifee)(dht)
 
@@ -142,7 +142,7 @@ func New(ctx context.Context, h host.Host, options ...opts.Option) (*IpfsDHT, er
 // NewDHT creates a new DHT object with the given peer as the 'local' host.
 // IpfsDHT's initialized with this function will respond to DHT requests,
 // whereas IpfsDHT's initialized with NewDHTClient will not.
-func NewDHT(ctx context.Context, h host.Host, dstore ds.Batching) *IpfsDHT {
+func NewDHT(ctx context.Context, h host.Host, dstore ds.Batching, ps peerstore.Peerstore) *IpfsDHT {
 	dht, err := New(ctx, h, opts.Datastore(dstore))
 	if err != nil {
 		panic(err)
@@ -162,9 +162,13 @@ func NewDHTClient(ctx context.Context, h host.Host, dstore ds.Batching) *IpfsDHT
 	return dht
 }
 
-func makeDHT(ctx context.Context, h host.Host, dstore ds.Batching, protocols []protocol.ID, bucketSize int, rt *kb.RoutingTable) *IpfsDHT {
+func makeDHT(ctx context.Context, h host.Host, dstore ds.Batching, protocols []protocol.ID, bucketSize int, ps peerstore.Peerstore, rt *kb.RoutingTable) *IpfsDHT {
+	if ps == nil {
+		ps = h.Peerstore()
+	}
+
 	if rt == nil {
-		rt = &kb.RoutingTable{kb.NewRoutingTable(bucketSize, kb.ConvertPeerID(h.ID()), time.Minute, h.Peerstore())}
+		rt = &kb.RoutingTable{Rt:kb.NewRoutingTable(bucketSize, kb.ConvertPeerID(h.ID()), time.Minute, ps)}
 	}
 
 	cmgr := h.ConnManager()
@@ -178,7 +182,7 @@ func makeDHT(ctx context.Context, h host.Host, dstore ds.Batching, protocols []p
 	dht := &IpfsDHT{
 		datastore:    dstore,
 		self:         h.ID(),
-		peerstore:    h.Peerstore(),
+		peerstore:    ps,
 		host:         h,
 		strmap:       make(map[peer.ID]*messageSender),
 		ctx:          ctx,
