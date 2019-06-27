@@ -2,6 +2,7 @@ package dhtopts
 
 import (
 	"fmt"
+	kbucket "github.com/libp2p/go-libp2p-kbucket"
 
 	ds "github.com/ipfs/go-datastore"
 	dssync "github.com/ipfs/go-datastore/sync"
@@ -25,6 +26,7 @@ type Options struct {
 	Client     bool
 	Protocols  []protocol.ID
 	BucketSize int
+	RoutingTable *kbucket.RoutingTable
 }
 
 // Apply applies the given options to this Option
@@ -113,6 +115,16 @@ func Protocols(protocols ...protocol.ID) Option {
 func BucketSize(bucketSize int) Option {
 	return func(o *Options) error {
 		o.BucketSize = bucketSize
+		return nil
+	}
+}
+
+// UseTrieRoutingTable configures the DHT to use a trie routing table
+//
+// Defaults to false
+func UseRoutingTable(rt *kbucket.RoutingTable) Option {
+	return func(o *Options) error {
+		o.RoutingTable = rt
 		return nil
 	}
 }

@@ -106,7 +106,7 @@ func New(ctx context.Context, h host.Host, options ...opts.Option) (*IpfsDHT, er
 	if err := cfg.Apply(append([]opts.Option{opts.Defaults}, options...)...); err != nil {
 		return nil, err
 	}
-	dht := makeDHT(ctx, h, cfg.Datastore, cfg.Protocols, cfg.BucketSize)
+	dht := makeDHT(ctx, h, cfg.Datastore, cfg.Protocols, cfg.BucketSize, cfg.RoutingTable)
 
 	subnot := (*subscriberNotifee)(dht)
 
@@ -162,16 +162,18 @@ func NewDHTClient(ctx context.Context, h host.Host, dstore ds.Batching) *IpfsDHT
 	return dht
 }
 
-func makeDHT(ctx context.Context, h host.Host, dstore ds.Batching, protocols []protocol.ID, bucketSize int) *IpfsDHT {
-	rt := kb.NewRoutingTable(bucketSize, kb.ConvertPeerID(h.ID()), time.Minute, h.Peerstore())
+func makeDHT(ctx context.Context, h host.Host, dstore ds.Batching, protocols []protocol.ID, bucketSize int, rt *kb.RoutingTable) *IpfsDHT {
+	if rt == nil {
+		rt = &kb.RoutingTable{kb.NewRoutingTable(bucketSize, kb.ConvertPeerID(h.ID()), time.Minute, h.Peerstore())}
+	}
 
 	cmgr := h.ConnManager()
-	rt.PeerAdded = func(p peer.ID) {
+	rt.SetPeerAddedCB(func(p peer.ID) {
 		cmgr.TagPeer(p, "kbucket", 5)
-	}
-	rt.PeerRemoved = func(p peer.ID) {
+	})
+	rt.SetPeerRemovedCB(func(p peer.ID) {
 		cmgr.UntagPeer(p, "kbucket")
-	}
+	})
 
 	dht := &IpfsDHT{
 		datastore:    dstore,
