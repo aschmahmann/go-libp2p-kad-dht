@@ -31,6 +31,6 @@ require (
 	golang.org/x/xerrors v0.0.0-20190513163551-3ee3066db522
 )
 
-replace github.com/libp2p/go-libp2p-kbucket => github.com/aschmahmann/go-libp2p-kbucket v0.2.1-alpha
+replace github.com/libp2p/go-libp2p-kbucket => github.com/aschmahmann/go-libp2p-kbucket v0.2.1-alpha2
 
 replace github.com/k-sone/critbitgo v1.2.0 => github.com/aschmahmann/critbitgo v1.3.0-alpha
