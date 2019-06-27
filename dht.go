@@ -347,7 +347,7 @@ func (dht *IpfsDHT) shouldAddPeerToRoutingTable(c network.Conn) bool {
 		return true
 	}
 
-	ai := dht.host.Peerstore().PeerInfo(c.RemotePeer())
+	ai := dht.peerstore.PeerInfo(c.RemotePeer())
 	if isPeerLocallyConnected(c) {
 		// TODO: for now, we can't easily tell if the peer on our subnet
 		// is dialable or not, so don't discriminate.
