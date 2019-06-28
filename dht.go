@@ -324,7 +324,7 @@ func (dht *IpfsDHT) Update(ctx context.Context, p peer.ID) {
 	default:
 		logger.Warning("unclear if we should add peer with multiple open connections to us to our routing table")
 	case 0:
-		logger.Error("called update on a peer with no connection")
+		//logger.Error("called update on a peer with no connection")
 	case 1:
 		dht.UpdateConn(ctx, conns[0])
 	}
