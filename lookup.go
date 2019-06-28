@@ -6,12 +6,12 @@ import (
 	"strings"
 
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/routing"
 
 	cid "github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log"
 	pb "github.com/libp2p/go-libp2p-kad-dht/pb"
 	kb "github.com/libp2p/go-libp2p-kbucket"
-	notif "github.com/libp2p/go-libp2p-routing/notifications"
 )
 
 func tryFormatLoggableKey(k string) (string, error) {
@@ -66,20 +66,40 @@ func (dht *IpfsDHT) GetClosestPeersSingle(ctx context.Context, from peer.ID, key
 // to the given key
 func (dht *IpfsDHT) GetClosestPeers(ctx context.Context, key string) (<-chan peer.ID, error) {
 	e := logger.EventBegin(ctx, "getClosestPeers", loggableKey(key))
-	tablepeers := dht.routingTable.NearestPeers(kb.ConvertKey(key), AlphaValue)
+	tablepeers := dht.routingTable.NearestPeers(kb.ConvertKey(key), KValue)
 	if len(tablepeers) == 0 {
 		return nil, kb.ErrLookupFailure
 	}
 
 	out := make(chan peer.ID, KValue)
 
+	query := dht.newClosestPeersQuery(ctx, key, nil)
+
+	go func() {
+		defer close(out)
+		defer e.Done()
+		// run it!
+		res, err := query.Run(ctx, tablepeers)
+		if err != nil {
+			logger.Debugf("closestPeers query run error: %s", err)
+		}
+
+		for _, p := range res {
+			out <- p
+		}
+	}()
+
+	return out, nil
+}
+
+func (dht *IpfsDHT) newClosestPeersQuery(ctx context.Context, key string, finish finishFunc) *dhtQuery {
 	// since the query doesnt actually pass our context down
 	// we have to hack this here. whyrusleeping isnt a huge fan of goprocess
 	parent := ctx
-	query := dht.newQuery(key, func(ctx context.Context, p peer.ID) (*dhtQueryResult, error) {
+	return dht.newQuery(key, func(ctx context.Context, p peer.ID) ([]*peer.AddrInfo, error) {
 		// For DHT query command
-		notif.PublishQueryEvent(parent, &notif.QueryEvent{
-			Type: notif.SendingQuery,
+		routing.PublishQueryEvent(parent, &routing.QueryEvent{
+			Type: routing.SendingQuery,
 			ID:   p,
 		})
 
@@ -91,35 +111,12 @@ func (dht *IpfsDHT) GetClosestPeers(ctx context.Context, key string) (<-chan pee
 		peers := pb.PBPeersToPeerInfos(pmes.GetCloserPeers())
 
 		// For DHT query command
-		notif.PublishQueryEvent(parent, &notif.QueryEvent{
-			Type:      notif.PeerResponse,
+		routing.PublishQueryEvent(parent, &routing.QueryEvent{
+			Type:      routing.PeerResponse,
 			ID:        p,
 			Responses: peers,
 		})
 
-		return &dhtQueryResult{closerPeers: peers}, nil
-	})
-
-	go func() {
-		defer close(out)
-		defer e.Done()
-		// run it!
-		res, err := query.Run(ctx, tablepeers)
-		if err != nil {
-			logger.Debugf("closestPeers query run error: %s", err)
-		}
-
-		if res != nil && res.queriedSet != nil {
-			sorted := kb.SortClosestPeers(res.queriedSet.Peers(), kb.ConvertKey(key))
-			if len(sorted) > KValue {
-				sorted = sorted[:KValue]
-			}
-
-			for _, p := range sorted {
-				out <- p
-			}
-		}
-	}()
-
-	return out, nil
+		return peers, nil
+	}, finish)
 }
