@@ -471,7 +471,7 @@ func (dht *IpfsDHT) betterPeersToQuery(pmes *pb.Message, p peer.ID, count int) [
 
 		// == to self? thats bad
 		if clp == dht.self {
-			logger.Error("BUG betterPeersToQuery: attempted to return self! this shouldn't happen...")
+			logger.Error("betterPeersToQuery: attempted to return self! this shouldn't happen...")
 			return nil
 		}
 		// Dont send a peer back themselves
