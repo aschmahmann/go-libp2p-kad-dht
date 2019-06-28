@@ -453,6 +453,22 @@ func (dht *IpfsDHT) findProvidersSingle(ctx context.Context, p peer.ID, key cid.
 // nearestPeersToQuery returns the routing tables closest peers.
 func (dht *IpfsDHT) nearestPeersToQuery(pmes *pb.Message, count int) []peer.ID {
 	closer := dht.routingTable.NearestPeers(kb.ConvertKey(string(pmes.GetKey())), count)
+	rmIndex := -1
+	for i, clp := range closer {
+		if clp == dht.self{
+			rmIndex = i
+			break
+		}
+	}
+
+	if rmIndex == 0 {
+		return nil
+	}
+
+	if rmIndex > 0 {
+		closer = closer[:rmIndex]
+	}
+
 	return closer
 }
 
@@ -471,7 +487,7 @@ func (dht *IpfsDHT) betterPeersToQuery(pmes *pb.Message, p peer.ID, count int) [
 
 		// == to self? thats bad
 		if clp == dht.self {
-			logger.Error("betterPeersToQuery: attempted to return self! this shouldn't happen...")
+			logger.Error("BUG betterPeersToQuery: attempted to return self! this shouldn't happen...")
 			return nil
 		}
 		// Dont send a peer back themselves
