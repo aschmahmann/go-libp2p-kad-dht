@@ -52,6 +52,16 @@ func loggableKey(k string) logging.LoggableMap {
 	}
 }
 
+func (dht *IpfsDHT) GetClosestPeersSingle(ctx context.Context, from peer.ID, key string) ([]*peer.AddrInfo, error){
+	pmes, err := dht.findPeerSingle(ctx, from, peer.ID(key))
+	if err != nil {
+		logger.Debugf("error getting closer peers: %s", err)
+		return nil, err
+	}
+	peers := pb.PBPeersToPeerInfos(pmes.GetCloserPeers())
+	return peers, nil
+}
+
 // Kademlia 'node lookup' operation. Returns a channel of the K closest peers
 // to the given key
 func (dht *IpfsDHT) GetClosestPeers(ctx context.Context, key string) (<-chan peer.ID, error) {
